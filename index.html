@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多图拼接工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      margin-top: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+    }
+
+    .subtitle {
+      color: #7f8c8d;
+      font-size: 1.1rem;
+    }
+
+    .upload-container {
+      border: 3px dashed #3498db;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      margin-bottom: 30px;
+      background: #f8fafc;
+      transition: all 0.3s ease;
+    }
+
+    .upload-container:hover {
+      background: #e8f4ff;
+      border-color: #2980b9;
+    }
+
+    .upload-container p {
+      margin: 15px 0;
+      color: #7f8c8d;
+    }
+
+    .upload-icon {
+      font-size: 60px;
+      color: #3498db;
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: inline-block;
+      margin: 10px 5px;
+    }
+
+    .btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-secondary {
+      background: #2ecc71;
+    }
+
+    .btn-secondary:hover {
+      background: #27ae60;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    .preview-section {
+      margin: 30px 0;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #ecf0f1;
+    }
+
+    .image-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .image-item {
+      width: calc(25% - 15px);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .image-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-width: 992px) {
+      .image-item {
+        width: calc(33.33% - 15px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .image-item {
+        width: calc(50% - 15px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .image-item {
+        width: 100%;
+      }
+    }
+
+    .image-item img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .image-name {
+      padding: 10px;
+      background: #f8fafc;
+      font-size: 0.9rem;
+      color: #34495e;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(231, 76, 60, 0.8);
+      color: white;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    .remove-btn:hover {
+      background: rgba(192, 57, 43, 1);
+      transform: scale(1.1);
+    }
+
+    .options-panel {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .option-group {
+      margin-bottom: 15px;
+    }
+
+    .option-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-weight: 500;
+    }
+
+    select,
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .result-container {
+      text-align: center;
+      margin-top: 30px;
+      padding: 20px;
+      border-top: 2px solid #ecf0f1;
+    }
+
+    #result-canvas {
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+      display: none;
+    }
+
+    .download-btn {
+      background: #9b59b6;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .download-btn:hover {
+      background: #8e44ad;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 0;
+      color: #7f8c8d;
+    }
+
+    .empty-state i {
+      font-size: 50px;
+      margin-bottom: 15px;
+      color: #bdc3c7;
+    }
+
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      color: #7f8c8d;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>多图拼接工具</h1>
+    <p class="subtitle">上传多张图片，轻松创建水平或垂直拼接效果</p>
+  </header>
+
+  <div class="container">
+    <div class="upload-container" id="drop-zone">
+      <div class="upload-icon">📁</div>
+      <h2>上传图片</h2>
+      <p>拖放图片到此处，或点击下方按钮选择文件</p>
+      <button class="btn" id="select-btn">选择图片</button>
+      <input type="file" id="file-input" multiple accept="image/*">
+    </div>
+
+    <div class="preview-section">
+      <h2>图片预览</h2>
+      <div class="image-list" id="image-list">
+        <div class="empty-state">
+          <i>📷</i>
+          <p>尚未上传任何图片</p>
+        </div>
+      </div>
+
+      <div class="options-panel">
+        <div class="option-group">
+          <label for="direction">拼接方向</label>
+          <select id="direction">
+            <option value="vertical">垂直拼接</option>
+            <option value="horizontal">水平拼接</option>
+          </select>
+        </div>
+
+        <div class="option-group">
+          <label for="spacing">图片间距 (像素)</label>
+          <input type="number" id="spacing" value="0" min="0" max="100">
+        </div>
+
+        <div class="option-group">
+          <label for="background">背景颜色</label>
+          <input type="color" id="background" value="#ffffff">
+        </div>
+      </div>
+
+      <button class="btn" id="stitch-btn">开始拼接</button>
+      <button class="btn btn-danger" id="clear-btn">清除所有图片</button>
+    </div>
+
+    <div class="result-container">
+      <h2>拼接结果</h2>
+      <canvas id="result-canvas"></canvas>
+      <a id="download-link" class="btn download-btn">下载拼接结果</a>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2023 多图拼接工具 | 使用HTML、CSS和JavaScript开发</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const fileInput = document.getElementById('file-input');
+      const selectBtn = document.getElementById('select-btn');
+      const dropZone = document.getElementById('drop-zone');
+      const imageList = document.getElementById('image-list');
+      const stitchBtn = document.getElementById('stitch-btn');
+      const clearBtn = document.getElementById('clear-btn');
+      const directionSelect = document.getElementById('direction');
+      const spacingInput = document.getElementById('spacing');
+      const backgroundInput = document.getElementById('background');
+      const resultCanvas = document.getElementById('result-canvas');
+      const downloadLink = document.getElementById('download-link');
+
+      let uploadedImages = [];
+
+      // 点击选择按钮触发文件输入
+      selectBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      // 处理文件选择
+      fileInput.addEventListener('change', handleFileSelect);
+
+      // 拖放功能
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#e3f2fd';
+        dropZone.style.borderColor = '#2196f3';
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.style.background = '#f8fafc';
+        dropZone.style.borderColor = '#3498db';
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#f8fafc';
+        dropZone.style.borderColor = '#3498db';
+
+        if (e.dataTransfer.files.length > 0) {
+          processFiles(e.dataTransfer.files);
+        }
+      });
+
+      // 拼接按钮点击事件
+      stitchBtn.addEventListener('click', stitchImages);
+
+      // 清除按钮点击事件
+      clearBtn.addEventListener('click', clearAllImages);
+
+      // 处理文件选择
+      function handleFileSelect(e) {
+        const files = e.target.files;
+        processFiles(files);
+      }
+
+      // 处理上传的文件
+      function processFiles(files) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+
+          // 只处理图片文件
+          if (!file.type.match('image.*')) {
+            continue;
+          }
+
+          const reader = new FileReader();
+
+          reader.onload = (function (theFile) {
+            return function (e) {
+              // 添加到上传图片数组
+              uploadedImages.push({
+                name: theFile.name,
+                src: e.target.result
+              });
+
+              // 更新预览
+              updateImagePreview();
+            };
+          })(file);
+
+          reader.readAsDataURL(file);
+        }
+      }
+
+      // 更新图片预览
+      function updateImagePreview() {
+        // 清除空状态
+        if (imageList.querySelector('.empty-state')) {
+          imageList.innerHTML = '';
+        }
+
+        imageList.innerHTML = '';
+
+        if (uploadedImages.length === 0) {
+          imageList.innerHTML = `
+                        <div class="empty-state">
+                            <i>📷</i>
+                            <p>尚未上传任何图片</p>
+                        </div>
+                    `;
+          return;
+        }
+
+        uploadedImages.forEach((image, index) => {
+          const imageItem = document.createElement('div');
+          imageItem.className = 'image-item';
+
+          imageItem.innerHTML = `
+                        <img src="${image.src}" alt="${image.name}">
+                        <div class="remove-btn" data-index="${index}">×</div>
+                        <div class="image-name">${image.name}</div>
+                    `;
+
+          imageList.appendChild(imageItem);
+        });
+
+        // 添加删除按钮事件监听
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const index = parseInt(this.getAttribute('data-index'));
+            removeImage(index);
+          });
+        });
+      }
+
+      // 移除单张图片
+      function removeImage(index) {
+        uploadedImages.splice(index, 1);
+        updateImagePreview();
+      }
+
+      // 清除所有图片
+      function clearAllImages() {
+        uploadedImages = [];
+        updateImagePreview();
+        resultCanvas.style.display = 'none';
+        downloadLink.style.display = 'none';
+      }
+
+      // 拼接图片
+      function stitchImages() {
+        if (uploadedImages.length < 1) {
+          alert('请至少上传一张图片！');
+          return;
+        }
+
+        const direction = directionSelect.value;
+        const spacing = parseInt(spacingInput.value);
+        const backgroundColor = backgroundInput.value;
+
+        // 创建内存中的图片对象并加载
+        const loadImages = uploadedImages.map(imageData => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = imageData.src;
+          });
+        });
+
+        // 所有图片加载完成后进行拼接
+        Promise.all(loadImages).then(images => {
+          // 计算画布尺寸
+          let totalWidth = 0;
+          let totalHeight = 0;
+          let maxWidth = 0;
+          let maxHeight = 0;
+
+          if (direction === 'horizontal') {
+            // 水平拼接：总宽度为所有图片宽度之和 + 间距，高度为最高图片的高度
+            images.forEach(img => {
+              totalWidth += img.width;
+              if (img.height > maxHeight) maxHeight = img.height;
+            });
+            totalWidth += spacing * (images.length - 1);
+            totalHeight = maxHeight;
+          } else {
+            // 垂直拼接：总高度为所有图片高度之和 + 间距，宽度为最宽图片的宽度
+            images.forEach(img => {
+              totalHeight += img.height;
+              if (img.width > maxWidth) maxWidth = img.width;
+            });
+            totalHeight += spacing * (images.length - 1);
+            totalWidth = maxWidth;
+          }
+
+          // 设置画布尺寸
+          resultCanvas.width = totalWidth;
+          resultCanvas.height = totalHeight;
+
+          const ctx = resultCanvas.getContext('2d');
+
+          // 填充背景色
+          ctx.fillStyle = backgroundColor;
+          ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+          // 绘制图片
+          let currentX = 0;
+          let currentY = 0;
+
+          images.forEach(img => {
+            if (direction === 'horizontal') {
+              ctx.drawImage(img, currentX, 0);
+              currentX += img.width + spacing;
+            } else {
+              ctx.drawImage(img, 0, currentY);
+              currentY += img.height + spacing;
+            }
+          });
+
+          // 显示画布和下载按钮
+          resultCanvas.style.display = 'block';
+          downloadLink.style.display = 'inline-block';
+
+          // 设置下载链接
+          downloadLink.href = resultCanvas.toDataURL('image/png');
+          downloadLink.download = 'image-stitch-result.png';
+        }).catch(error => {
+          console.error('图片加载失败:', error);
+          alert('图片加载失败，请重试！');
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>
