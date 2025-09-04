@@ -230,6 +230,27 @@
       font-size: 1rem;
     }
 
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin-right: 10px;
+    }
+
+    .size-inputs {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .size-inputs input {
+      flex: 1;
+    }
+
     .result-container {
       text-align: center;
       margin-top: 30px;
@@ -318,6 +339,24 @@
           <label for="background">背景颜色</label>
           <input type="color" id="background" value="#ffffff">
         </div>
+        
+        <!-- 新增：统一图片尺寸选项 -->
+        <div class="option-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="uniform-size">
+            <label for="uniform-size">统一图片尺寸</label>
+          </div>
+          <div class="size-inputs" id="size-inputs" style="display: none;">
+            <div>
+              <label for="uniform-width">宽度 (px)</label>
+              <input type="number" id="uniform-width" value="800" min="100" max="4000">
+            </div>
+            <div>
+              <label for="uniform-height">高度 (px)</label>
+              <input type="number" id="uniform-height" value="600" min="100" max="4000">
+            </div>
+          </div>
+        </div>
       </div>
 
       <button class="btn" id="stitch-btn">开始拼接</button>
@@ -346,6 +385,10 @@
       const directionSelect = document.getElementById('direction');
       const spacingInput = document.getElementById('spacing');
       const backgroundInput = document.getElementById('background');
+      const uniformSizeCheckbox = document.getElementById('uniform-size');
+      const sizeInputs = document.getElementById('size-inputs');
+      const uniformWidthInput = document.getElementById('uniform-width');
+      const uniformHeightInput = document.getElementById('uniform-height');
       const resultCanvas = document.getElementById('result-canvas');
       const downloadLink = document.getElementById('download-link');
 
@@ -379,6 +422,11 @@
         if (e.dataTransfer.files.length > 0) {
           processFiles(e.dataTransfer.files);
         }
+      });
+
+      // 统一尺寸复选框事件
+      uniformSizeCheckbox.addEventListener('change', function() {
+        sizeInputs.style.display = this.checked ? 'flex' : 'none';
       });
 
       // 拼接按钮点击事件
@@ -433,11 +481,11 @@
 
         if (uploadedImages.length === 0) {
           imageList.innerHTML = `
-                        <div class="empty-state">
-                            <i>📷</i>
-                            <p>尚未上传任何图片</p>
-                        </div>
-                    `;
+            <div class="empty-state">
+              <i>📷</i>
+              <p>尚未上传任何图片</p>
+            </div>
+          `;
           return;
         }
 
@@ -446,10 +494,10 @@
           imageItem.className = 'image-item';
 
           imageItem.innerHTML = `
-                        <img src="${image.src}" alt="${image.name}">
-                        <div class="remove-btn" data-index="${index}">×</div>
-                        <div class="image-name">${image.name}</div>
-                    `;
+            <img src="${image.src}" alt="${image.name}">
+            <div class="remove-btn" data-index="${index}">×</div>
+            <div class="image-name">${image.name}</div>
+          `;
 
           imageList.appendChild(imageItem);
         });
@@ -477,6 +525,21 @@
         downloadLink.style.display = 'none';
       }
 
+      // 调整图片尺寸的函数
+      function resizeImage(img, width, height) {
+        // 创建离屏canvas用于调整尺寸
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 绘制调整尺寸后的图片
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        return canvas;
+      }
+
       // 拼接图片
       function stitchImages() {
         if (uploadedImages.length < 1) {
@@ -487,6 +550,9 @@
         const direction = directionSelect.value;
         const spacing = parseInt(spacingInput.value);
         const backgroundColor = backgroundInput.value;
+        const uniformSize = uniformSizeCheckbox.checked;
+        const uniformWidth = parseInt(uniformWidthInput.value);
+        const uniformHeight = parseInt(uniformHeightInput.value);
 
         // 创建内存中的图片对象并加载
         const loadImages = uploadedImages.map(imageData => {
@@ -500,28 +566,29 @@
 
         // 所有图片加载完成后进行拼接
         Promise.all(loadImages).then(images => {
+          // 如果需要统一尺寸，调整所有图片
+          if (uniformSize) {
+            images = images.map(img => resizeImage(img, uniformWidth, uniformHeight));
+          }
+
           // 计算画布尺寸
           let totalWidth = 0;
           let totalHeight = 0;
-          let maxWidth = 0;
-          let maxHeight = 0;
 
           if (direction === 'horizontal') {
             // 水平拼接：总宽度为所有图片宽度之和 + 间距，高度为最高图片的高度
             images.forEach(img => {
               totalWidth += img.width;
-              if (img.height > maxHeight) maxHeight = img.height;
+              if (img.height > totalHeight) totalHeight = img.height;
             });
             totalWidth += spacing * (images.length - 1);
-            totalHeight = maxHeight;
           } else {
             // 垂直拼接：总高度为所有图片高度之和 + 间距，宽度为最宽图片的宽度
             images.forEach(img => {
               totalHeight += img.height;
-              if (img.width > maxWidth) maxWidth = img.width;
+              if (img.width > totalWidth) totalWidth = img.width;
             });
             totalHeight += spacing * (images.length - 1);
-            totalWidth = maxWidth;
           }
 
           // 设置画布尺寸
@@ -540,10 +607,14 @@
 
           images.forEach(img => {
             if (direction === 'horizontal') {
-              ctx.drawImage(img, currentX, 0);
+              // 水平拼接时垂直居中
+              const y = (totalHeight - img.height) / 2;
+              ctx.drawImage(img, currentX, y);
               currentX += img.width + spacing;
             } else {
-              ctx.drawImage(img, 0, currentY);
+              // 垂直拼接时水平居中
+              const x = (totalWidth - img.width) / 2;
+              ctx.drawImage(img, x, currentY);
               currentY += img.height + spacing;
             }
           });
@@ -554,7 +625,7 @@
 
           // 设置下载链接
           downloadLink.href = resultCanvas.toDataURL('image/jpeg');
-          downloadLink.download = 'image.jpeg';
+          downloadLink.download = 'stitched-image.jpg';
         }).catch(error => {
           console.error('图片加载失败:', error);
           alert('图片加载失败，请重试！');
